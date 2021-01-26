@@ -1,7 +1,7 @@
 # RenderDomModel
 
 #### 介绍
-RDM是一个类似Vue React 的类库 并非框架 请勿误解
+RDM是一个类似 Vue React 的类库 并非框架 请勿误解
 
 #### 使用说明
 
