@@ -30,12 +30,13 @@ export function GetValueByPropStr(
   if (PropStr.match(/\<.*?\>/gi)) {
     PropStr = PropStr.substring(1, PropStr.length - 1);
   }
-  let Prop = { key: "", Item: null };
+  let Prop = { key: "", Item: null, arrlen: 0 };
   PropStr.split(".").forEach((s) => {
     let idx = s.match(/\[[0-9]+\]/gi);
     if (idx) {
       idx[0] = idx[0].substring(1, idx[0].length - 1);
       model = model[s.replace("[" + idx[0] + "]", "")];
+      Prop.arrlen = (model as any).length;
       model = model[idx[0]];
       Prop.Item = model;
       Prop.key = s.replace("[" + idx[0] + "]", "");
@@ -56,4 +57,17 @@ export function GetValueByPropStr(
  */
 export function Bind(PorpStr): any {
   return { Bind: PorpStr };
+}
+/**
+ * 属性监听器
+ * @param WatchFunc 监听方法
+ */
+export function Watch(WatchFunc: Function) {
+  return function (target: any, attr: any) {
+    if (target.$__RDM_Watchs__$) {
+      target.$__RDM_Watchs__$[attr] = WatchFunc;
+    } else {
+      target.$__RDM_Watchs__$ = { [attr]: WatchFunc };
+    }
+  };
 }

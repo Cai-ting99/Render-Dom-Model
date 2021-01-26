@@ -39,7 +39,11 @@ export default class RDM {
     return function () {
       Func.apply(this, arguments);
       if (this.RDMProp) return;
-      if (Func.name === "reverse" || Func.name === "sort")
+      if (
+        Func.name === "reverse" ||
+        Func.name === "sort" ||
+        Func.name === "splice"
+      )
         this["$__" + Func.name] = true;
       for (let i = 0; i < RDM.$DomForTempLate.length; i++) {
         if (
@@ -54,7 +58,11 @@ export default class RDM {
           RDM.$DomForTempLate[i].action({ name: Func.name, args: arguments });
         }
       }
-      if (Func.name === "reverse" || Func.name === "sort")
+      if (
+        Func.name === "reverse" ||
+        Func.name === "sort" ||
+        Func.name === "splice"
+      )
         delete this["$__" + Func.name];
       if (_self.LazyUpdate) {
         clearTimeout(_self.LazyUpdate);
@@ -69,7 +77,15 @@ export default class RDM {
 
   RewritingArrayFunc() {
     (this.$DomModels as any).RDMProp = true;
-    let FuncName = ["push", "pop", "shift", "unshift", "sort", "reverse"];
+    let FuncName = [
+      "push",
+      "pop",
+      "shift",
+      "unshift",
+      "sort",
+      "reverse",
+      "splice",
+    ];
     for (let i = 0; i < FuncName.length; i++) {
       Array.prototype[FuncName[i]] = this.AopFunc(Array.prototype[FuncName[i]]);
     }
@@ -77,20 +93,31 @@ export default class RDM {
 
   LaterUpadte: any = 0;
 
-  Monitor(Model: object) {
+  Monitor(Model: object, ParentKeys: Array<string> = []) {
     if (Array.isArray(Model)) {
       for (let i = 0; i < Model.length; i++) {
-        this.Monitor(Model[i]);
+        this.Monitor(Model[i], ParentKeys);
       }
       return;
     }
     for (const key in Model) {
       let TempValue = Model[key];
       Object.defineProperty(Model, key, {
-        get() {
+        get: () => {
           return TempValue;
         },
         set: (v) => {
+          for (const WatchKey in this.$Module.$__RDM_Watchs__$) {
+            if (
+              (key === WatchKey && ParentKeys.length === 0) ||
+              ParentKeys[0] === WatchKey
+            ) {
+              this.$Module.$__RDM_Watchs__$[WatchKey].apply(this.$Module, [
+                v,
+                TempValue,
+              ]);
+            }
+          }
           TempValue = v;
           if (this.LaterUpadte) {
             clearTimeout(this.LaterUpadte);
@@ -103,7 +130,7 @@ export default class RDM {
         },
       });
       if (typeof Model[key] === "object") {
-        this.Monitor(Model[key]);
+        this.Monitor(Model[key], ParentKeys.concat(key));
       }
     }
   }

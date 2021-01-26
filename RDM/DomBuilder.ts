@@ -12,7 +12,7 @@ export default class DomBuilder {
   Dom: HTMLElement = null;
   IsLoad = false;
   Index = 0;
-  ForLocation: { Action: string } = { Action: "" };
+  ForLocation: any = { Action: "" };
   constructor(
     _DomModels: Array<DomBuilder>,
     _Module: { [x: string]: any; Rander: Function }
@@ -62,7 +62,7 @@ export default class DomBuilder {
     return this;
   }
 
-  public setForLocation(_location: { Action: string }) {
+  public setForLocation(_location: any) {
     this.ForLocation = _location;
     return this;
   }
@@ -82,6 +82,8 @@ export default class DomBuilder {
         if (
           NewAttrModel[key]["BindStr"] !== this.AttrModel[key]["BindStr"] ||
           NewAttrModel[key]["model"] !== this.AttrModel[key]["model"] ||
+          NewAttrModel[key]["Prop"]["arrlen"] !==
+            this.AttrModel[key]["Prop"]["arrlen"] ||
           this.Dom[key] !== NewAttrModel[key]["model"]
         ) {
           DiffAttrModel[key] = NewAttrModel[key];
@@ -126,11 +128,15 @@ export default class DomBuilder {
     }
     this.Dom = NewDom;
   }
-
+  EventHandler;
   private RanderFunc(key: string) {
+    this.Dom.removeEventListener(key, this.EventHandler);
+    this.EventHandler = (e) => {
+      this.AttrModel[key](e);
+    };
     if (this.Item) {
       let _self = this;
-      this.AttrModel[key] = ((func: Function) => {
+      this.EventHandler = ((func: Function) => {
         return function (e) {
           func.apply(this, [
             _self.Item[_self.AttrModel["itemas"]],
@@ -138,11 +144,11 @@ export default class DomBuilder {
             e,
           ]);
         };
-      })(this.AttrModel[key]);
+      })(this.EventHandler);
     }
-    this.Dom.addEventListener(key, this.AttrModel[key]);
+    this.Dom.addEventListener(key, this.EventHandler);
   }
-
+  BindValueHandler;
   private RanderBind(key) {
     if (this.Dom[key] !== this.AttrModel[key].model)
       this.Dom[key] = this.AttrModel[key].model;
@@ -150,12 +156,12 @@ export default class DomBuilder {
     if (this.Dom.nodeName === "SELECT") {
       EventType = "change";
     }
-    let handler = () => {
+    this.Dom.removeEventListener(EventType, this.BindValueHandler);
+    this.BindValueHandler = () => {
       this.AttrModel[key].Prop.Item[this.AttrModel[key].Prop.key] = (this
         .Dom as any).value;
     };
-    this.Dom.removeEventListener(EventType, handler);
-    this.Dom.addEventListener(EventType, handler);
+    this.Dom.addEventListener(EventType, this.BindValueHandler);
   }
   OldAttrStr;
   private AnalysisSpecificAttr(Attrkey: string, _AttrModel) {
@@ -255,7 +261,7 @@ export default class DomBuilder {
             }
             break;
           default:
-            if (typeof this.AttrModel[key] === "function" && !this.IsLoad) {
+            if (typeof this.AttrModel[key] === "function") {
               this.RanderFunc(key);
             } else {
               if (this.AttrModel[key].hasOwnProperty("Prop")) {
@@ -296,14 +302,13 @@ export default class DomBuilder {
         arr: this.AttrModel["f"],
         len: this.AttrModel["f"].length,
         action: (Type: { name: string; args: Array<any> }) => {
+          Type.args = Array.from(Type.args);
+          (Type.args as any).RDMProp = true;
           switch (Type.name) {
             case "unshift":
             case "push":
               if (Type.name === "unshift") {
-                Type.args = Array.from(Type.args);
-                (Type.args as any).RDMProp = true;
                 Type.args.reverse();
-                delete (Type.args as any).RDMProp;
               }
               for (let i = 0; i < Type.args.length; i++) {
                 this.ChildDomArr[Type.name](
@@ -322,10 +327,10 @@ export default class DomBuilder {
                             [this.AttrModel["itemas"]]: Type.args[i],
                           }
                     )
-                    .setForIndex(
-                      this.AttrModel["f"].length - (Type.args.length - i)
-                    )
-                    .setForLocation({ Action: Type.name })
+                    .setForLocation({
+                      Action: Type.name,
+                      ChildDomArr: this.ChildDomArr,
+                    })
                     .setParentDom(this.ParentDom)
                     .builder()
                 );
@@ -358,7 +363,57 @@ export default class DomBuilder {
                 this.ChildDomArr[i].setLoadState(true).builder(true);
               }
               break;
+            case "splice":
+              let AppendDom = () => {
+                Type.args.reverse();
+                for (let i = 0; i < Type.args.length - 2; i++) {
+                  this.ChildDomArr[Type.name](
+                    Type.args[Type.args.length - 1],
+                    Type.args[Type.args.length - 2],
+                    new DomBuilder(this.DomModels, this.Module)
+                      .setHtmlModelProp(this.ModelProp)
+                      .setHtmlElementKey(this.HtmlElementKey)
+                      .setAttrModel({ ...this.AttrModel })
+                      .setContinuetoCycle(false)
+                      .setForItem(
+                        this.Item
+                          ? {
+                              ...this.Item,
+                              [this.AttrModel["itemas"]]: Type.args[i],
+                            }
+                          : {
+                              [this.AttrModel["itemas"]]: Type.args[i],
+                            }
+                      )
+                      .setForLocation({
+                        Action: Type.name,
+                        StartIndex: Type.args[Type.args.length - 1],
+                        ChildDomArr: this.ChildDomArr,
+                      })
+                      .setParentDom(this.ParentDom)
+                      .builder()
+                  );
+                }
+              };
+              let DeleteDom = () => {
+                for (let i = Type.args[0]; i < Type.args[1]; i++) {
+                  this.ChildDomArr[i].Dom.parentElement.removeChild(
+                    this.ChildDomArr[i].Dom
+                  );
+                  this.ChildDomArr.splice(i, 1);
+                }
+              };
+              if (Type.args[1] === 0 && Type.args.length > 2) {
+                AppendDom();
+              } else if (Type.args[1] > 0 && Type.args.length === 2) {
+                DeleteDom();
+              } else if (Type.args[1] > 0 && Type.args.length > 2) {
+                DeleteDom();
+                AppendDom();
+              }
+              break;
           }
+          delete (Type.args as any).RDMProp;
           if (this.ParentDom.nodeName === "SELECT") {
             (this.ParentDom as HTMLSelectElement).value = "";
           }
@@ -404,10 +459,23 @@ export default class DomBuilder {
     if (this.ParentDom.nodeName !== "#comment" && !Reconsitution) {
       switch (this.ForLocation.Action) {
         case "unshift":
-          if (this.ParentDom.children.length === 0) {
+          if (this.ForLocation.ChildDomArr.length === 0) {
             this.ParentDom.appendChild(this.Dom);
           } else {
-            this.ParentDom.insertBefore(this.Dom, this.ParentDom.children[0]);
+            this.ParentDom.insertBefore(
+              this.Dom,
+              this.ForLocation.ChildDomArr[0].Dom
+            );
+          }
+          break;
+        case "splice":
+          if (this.ForLocation.ChildDomArr.length === 0) {
+            this.ParentDom.appendChild(this.Dom);
+          } else {
+            this.ParentDom.insertBefore(
+              this.Dom,
+              this.ForLocation.ChildDomArr[this.ForLocation.StartIndex].Dom
+            );
           }
           break;
         case "push":

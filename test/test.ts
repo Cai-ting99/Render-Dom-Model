@@ -1,7 +1,12 @@
-import { Bind } from "../RDM/PublicLib";
+import { Bind, Watch } from "../RDM/PublicLib";
 
 export default class {
-  name = "原文本";
+  @Watch(function (nv, _ov) {
+    this.data2[0].name = nv;
+  })
+  name = {
+    subname: "a",
+  };
   data = [];
   data2 = [
     { name: Math.random().toString(), value: "a" },
@@ -12,14 +17,13 @@ export default class {
   selectVal = "张三";
   EditIndex = 0;
   constructor() {
-    for (let i = 0; i < 1000; i++) {
+    for (let i = 0; i < 0; i++) {
       let dataName = Math.random().toString();
       this.data.push({
         name: dataName,
         age: 18,
       });
     }
-    this.data2[0].name = "前缀";
   }
   Rander() {
     return {
@@ -30,6 +34,9 @@ export default class {
       },
       div: {
         title: `select选中的值：${this.selectVal}`,
+        click: () => {
+          this.name.subname = Math.random().toString();
+        },
       },
       select: {
         value: Bind("selectVal"),
@@ -67,19 +74,22 @@ export default class {
           //     value: "",
           //   });
           // }
-          // this.data2.pop();
-          this.data2.push({
-            name: "我是追加的" + Math.random(),
-            value: Math.random().toString(),
-          });
+          this.data2.splice(
+            0,
+            0,
+            ...[
+              { name: "a", value: "a" },
+              { name: "b", value: "b" },
+            ]
+          );
         },
       },
       a: {
-        title: this.name,
+        title: this.name.subname,
         div: {
           f: this.data,
           itemas: "m",
-          title: this.data2[0].name + "：<m.name> 年龄：<m.age>",
+          title: "姓名：<m.name> 年龄：<m.age>",
           input: {
             value: Bind("<m.name>"),
           },
@@ -99,5 +109,8 @@ export default class {
         },
       },
     };
+  }
+  Style() {
+    return {};
   }
 }
