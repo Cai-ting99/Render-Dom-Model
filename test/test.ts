@@ -2,16 +2,14 @@ import { Bind, Watch } from "../RDM/PublicLib";
 
 export default class {
   @Watch(function (nv, _ov) {
-    this.data2[0].name = nv;
+    this.data2[0] = nv;
   })
-  name = {
-    subname: "a",
-  };
+  name = "阿巴阿巴";
   data = [];
   data2 = [
-    { name: Math.random().toString(), value: "a" },
-    { name: Math.random().toString(), value: "b" },
-    { name: Math.random().toString(), value: "c" },
+    Math.random().toString(),
+    Math.random().toString(),
+    Math.random().toString(),
   ];
   color = "red";
   selectVal = "张三";
@@ -30,12 +28,12 @@ export default class {
       input: {
         if: this.data2.length !== 0,
         type: "text",
-        value: Bind(`data2[${this.EditIndex}].name`),
+        value: Bind(`data2[${this.EditIndex}]`),
       },
       div: {
         title: `select选中的值：${this.selectVal}`,
         click: () => {
-          this.name.subname = Math.random().toString();
+          this.name = Math.random().toString();
         },
       },
       select: {
@@ -43,8 +41,7 @@ export default class {
         option: {
           f: this.data2,
           itemas: "m",
-          title: "<m.name>",
-          value: "<m.value>",
+          title: "<m>",
         },
       },
       button: {
@@ -65,6 +62,7 @@ export default class {
         },
       },
       div1: {
+        className: "abb",
         style: "color:" + this.color,
         title: `点我追加Dom`,
         click: () => {
@@ -74,18 +72,18 @@ export default class {
           //     value: "",
           //   });
           // }
-          this.data2.splice(
-            0,
-            0,
-            ...[
-              { name: "a", value: "a" },
-              { name: "b", value: "b" },
-            ]
-          );
+          // this.data2.splice(
+          //   0,
+          //   0,
+          //   ...[
+          //     { name: "a", value: "a" },
+          //     { name: "b", value: "b" },
+          //   ]
+          // );
         },
       },
       a: {
-        title: this.name.subname,
+        title: this.name,
         div: {
           f: this.data,
           itemas: "m",
@@ -99,7 +97,7 @@ export default class {
             // this.data2.sort((a, b) => parseFloat(a.name) - parseFloat(b.name));
           },
           div: {
-            title: "<m1.name>",
+            title: "<m1>",
             f: this.data2,
             itemas: "m1",
             click: (_m, i) => {

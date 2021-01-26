@@ -37,9 +37,9 @@ export function GetValueByPropStr(
       idx[0] = idx[0].substring(1, idx[0].length - 1);
       model = model[s.replace("[" + idx[0] + "]", "")];
       Prop.arrlen = (model as any).length;
-      model = model[idx[0]];
+      Prop.key = idx[0];
       Prop.Item = model;
-      Prop.key = s.replace("[" + idx[0] + "]", "");
+      model = model[idx[0]];
       return;
     }
     Prop.key = s;

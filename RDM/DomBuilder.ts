@@ -77,6 +77,9 @@ export default class DomBuilder {
         typeof NewAttrModel[key] === "function"
       )
         continue;
+      if (this.Item && NewAttrModel["f"]) {
+        this.Item[NewAttrModel["itemas"]] = NewAttrModel["f"][this.Index];
+      }
       this.AnalysisSpecificAttr(key, NewAttrModel);
       if (NewAttrModel[key].hasOwnProperty("Prop")) {
         if (
