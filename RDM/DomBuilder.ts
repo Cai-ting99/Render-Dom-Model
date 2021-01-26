@@ -131,8 +131,8 @@ export default class DomBuilder {
   EventHandler;
   private RanderFunc(key: string) {
     this.Dom.removeEventListener(key, this.EventHandler);
-    this.EventHandler = (e) => {
-      this.AttrModel[key](e);
+    this.EventHandler = (...params) => {
+      this.AttrModel[key](...params);
     };
     if (this.Item) {
       let _self = this;
