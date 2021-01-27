@@ -1,11 +1,11 @@
 import { Bind, Watch } from "../RDM/PublicLib";
 
 export default class {
+  @Watch(function (_nv, _ov) {
+    this.data2[0].name += "这是啥呀";
+  })
   name = "阿巴阿巴";
   data = [];
-  @Watch(function (nv, _ov) {
-    this.name = nv[this.EditIndex].name;
-  })
   data2 = [
     { name: Math.random().toString(), value: "a" },
     { name: Math.random().toString(), value: "b" },

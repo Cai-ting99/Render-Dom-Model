@@ -77,14 +77,14 @@ export default class DomBuilder {
         typeof NewAttrModel[key] === "function"
       )
         continue;
-      if (IsonlyBind && !NewAttrModel[key]["Bind"]) {
+      if (IsonlyBind && !NewAttrModel[key].hasOwnProperty("Bind")) {
         continue;
       }
-      if (this.Item && NewAttrModel["f"]) {
+      if (this.Item && NewAttrModel.hasOwnProperty("f")) {
         this.Item[NewAttrModel["itemas"]] = NewAttrModel["f"][this.Index];
       }
       this.AnalysisSpecificAttr(key, NewAttrModel);
-      if (NewAttrModel[key]["Prop"]) {
+      if (NewAttrModel[key].hasOwnProperty("Prop")) {
         if (
           NewAttrModel[key]["BindStr"] !== this.AttrModel[key]["BindStr"] ||
           NewAttrModel[key]["model"] !== this.AttrModel[key]["model"] ||
@@ -96,7 +96,7 @@ export default class DomBuilder {
           this.AttrModel[key] = NewAttrModel[key];
         }
       } else {
-        if (NewAttrModel[key]["template"]) {
+        if (NewAttrModel[key].hasOwnProperty("template")) {
           if (
             NewAttrModel[key]["value"].toString() !==
             this.AttrModel[key]["value"].toString()
@@ -113,7 +113,7 @@ export default class DomBuilder {
       }
     }
     let OldAttrModel = this.AttrModel;
-    if (DiffAttrModel["if"] !== undefined) {
+    if (DiffAttrModel.hasOwnProperty("if")) {
       DiffAttrModel = { ...this.AttrModel, ...DiffAttrModel };
     }
     this.setAttrModel(DiffAttrModel);
@@ -180,7 +180,7 @@ export default class DomBuilder {
     this.Dom.addEventListener(EventType, this.BindValueHandler);
   }
   private AnalysisSpecificAttr(Attrkey: string, _AttrModel) {
-    if (_AttrModel[Attrkey]["template"])
+    if (_AttrModel[Attrkey].hasOwnProperty("template"))
       _AttrModel[Attrkey] = _AttrModel[Attrkey]["template"];
     if (_AttrModel["if"] !== undefined) {
       if (_AttrModel["if"].toString() === "false") {
@@ -222,6 +222,7 @@ export default class DomBuilder {
     let BindFuncArr = [];
     (BindFuncArr as any).RDMProp = true;
     for (const key in this.AttrModel) {
+      if (this.AttrModel[key] === undefined) continue;
       if (
         IsTagModel(this.AttrModel[key]) &&
         !this.ChildDom.hasOwnProperty(key)
