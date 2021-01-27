@@ -1,7 +1,9 @@
-# RenderDomModel
+# Render Dom Model
 
 #### 介绍
 RDM是一个类似 Vue React 的类库 并非框架 请勿误解
+
+最基本的通过双向绑定、数组的增删改实时刷新 Dom 完成，Style、路由、组件化待开发
 
 #### 使用说明
 
