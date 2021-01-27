@@ -5,6 +5,8 @@ export default class RDM {
   /**模块对象 */
   $Module: { Rander: Function; Style: Function; [x: string]: any };
 
+  $BackModule = {};
+
   /**Dom对象实体的集合 */
   $DomModels: Array<DomBuilder> = [];
 
@@ -19,6 +21,7 @@ export default class RDM {
     action: Function;
   }> = [];
 
+  static $WatchFuncList: Array<{ key: string; func: Function }> = [];
   /**
    * RDM构造函数
    * @param Module 模块类
@@ -28,7 +31,10 @@ export default class RDM {
     this.RanderCssStyle(this.$Module.Style());
     this.RanderHTMLModel(this.$Module.Rander(), this.$Document);
     setTimeout(() => {
-      this.Monitor(this.$Module, true);
+      this.Monitor(this.$Module);
+      for (const key in this.$Module) {
+        this.$BackModule[key] = this.$Module[key];
+      }
       this.RewritingArrayFunc();
     }, 0);
     document.body.appendChild(this.$Document);
@@ -46,11 +52,7 @@ export default class RDM {
         Func.name === "splice"
       )
         this["$__" + Func.name] = true;
-      let Args = Array.from(arguments);
-      if (Func.name === "splice") Args = Args.slice(2, Args.length);
-      for (let i = 0; i < Args.length; i++) {
-        _self.Monitor(Args[i]);
-      }
+      _self.Monitor(_self.$Module);
       for (let i = 0; i < RDM.$DomForTempLate.length; i++) {
         if (
           RDM.$DomForTempLate[i].arr.length !== RDM.$DomForTempLate[i].len ||
@@ -94,22 +96,24 @@ export default class RDM {
 
   LaterUpadte: any = 0;
 
-  Monitor(Model: object, IsOutermost = false, WatchFn = null) {
+  Monitor(Model: object, ParentKey: Array<string> = []) {
     let MonitorModel = (key) => {
-      let WatchFunc = null;
-      if (IsOutermost) {
-        if (this.$Module.$__RDM_Watchs__$[key])
-          WatchFunc = this.$Module.$__RDM_Watchs__$[key].bind(this.$Module);
-      }
-      if (WatchFn) WatchFunc = WatchFn;
       let TempValue = Model[key];
       Object.defineProperty(Model, key, {
         get: () => {
           return TempValue;
         },
         set: (v) => {
-          WatchFunc && WatchFunc(v, TempValue);
+          let FuncK = key;
+          if (ParentKey.length !== 0) FuncK = ParentKey[0];
+          let WatchFunc = RDM.$WatchFuncList.find((f) => f.key === FuncK);
           TempValue = v;
+          WatchFunc &&
+            WatchFunc.func.apply(this, [
+              this.$Module[FuncK],
+              this.$BackModule[FuncK],
+              FuncK,
+            ]);
           if (this.LaterUpadte) {
             clearTimeout(this.LaterUpadte);
           }
@@ -121,13 +125,13 @@ export default class RDM {
         },
       });
       if (typeof Model[key] === "object") {
-        this.Monitor(Model[key], false, WatchFunc);
+        this.Monitor(Model[key], ParentKey.concat(key));
       }
     };
     if (Array.isArray(Model)) {
       for (let i = 0; i < Model.length; i++) {
         if (typeof Model[i] === "object") {
-          this.Monitor(Model[i]);
+          this.Monitor(Model[i], ParentKey.concat(i.toString()));
         } else {
           MonitorModel(i);
         }

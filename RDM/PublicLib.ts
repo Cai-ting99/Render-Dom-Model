@@ -1,3 +1,5 @@
+import RDM from "./RDM";
+
 /**
  * 是否是标签模型
  * @param obj 要验证的对象
@@ -63,11 +65,13 @@ export function Bind(PorpStr): any {
  * @param WatchFunc 监听方法
  */
 export function Watch(WatchFunc: Function) {
-  return function (target: any, attr: any) {
-    if (target.$__RDM_Watchs__$) {
-      target.$__RDM_Watchs__$[attr] = WatchFunc;
-    } else {
-      target.$__RDM_Watchs__$ = { [attr]: WatchFunc };
-    }
+  return function (_target: any, attr: any) {
+    RDM.$WatchFuncList.push({
+      key: attr,
+      func: function (nv, ov, key) {
+        this.$BackModule[key] = nv;
+        WatchFunc.apply(this.$Module, [nv, ov]);
+      },
+    });
   };
 }

@@ -1,21 +1,21 @@
 import { Bind, Watch } from "../RDM/PublicLib";
 
 export default class {
-  @Watch(function (nv, _ov) {
-    this.data2[0] = nv;
-  })
   name = "阿巴阿巴";
   data = [];
+  @Watch(function (nv, ov) {
+    console.log(nv, ov);
+  })
   data2 = [
-    Math.random().toString(),
-    Math.random().toString(),
-    Math.random().toString(),
+    { name: Math.random().toString(), value: "a" },
+    { name: Math.random().toString(), value: "b" },
+    { name: Math.random().toString(), value: "c" },
   ];
   color = "red";
   selectVal = "张三";
   EditIndex = 0;
   constructor() {
-    for (let i = 0; i < 0; i++) {
+    for (let i = 0; i < 1000; i++) {
       let dataName = Math.random().toString();
       this.data.push({
         name: dataName,
@@ -28,7 +28,7 @@ export default class {
       input: {
         if: this.data2.length !== 0,
         type: "text",
-        value: Bind(`data2[${this.EditIndex}]`),
+        value: Bind(`data2[${this.EditIndex}].name`),
       },
       div: {
         title: `select选中的值：${this.selectVal}`,
@@ -41,7 +41,7 @@ export default class {
         option: {
           f: this.data2,
           itemas: "m",
-          title: "<m>",
+          title: "<m.name>",
         },
       },
       button: {
@@ -72,14 +72,14 @@ export default class {
           //     value: "",
           //   });
           // }
-          // this.data2.splice(
-          //   0,
-          //   0,
-          //   ...[
-          //     { name: "a", value: "a" },
-          //     { name: "b", value: "b" },
-          //   ]
-          // );
+          this.data2.splice(
+            0,
+            0,
+            ...[
+              { name: "a", value: "a" },
+              { name: "b", value: "b" },
+            ]
+          );
         },
       },
       a: {
@@ -97,7 +97,7 @@ export default class {
             // this.data2.sort((a, b) => parseFloat(a.name) - parseFloat(b.name));
           },
           div: {
-            title: "<m1>",
+            title: "<m1.name>",
             f: this.data2,
             itemas: "m1",
             click: (_m, i) => {
