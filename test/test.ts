@@ -3,8 +3,8 @@ import { Bind, Watch } from "../RDM/PublicLib";
 export default class {
   name = "阿巴阿巴";
   data = [];
-  @Watch(function (nv, ov) {
-    console.log(nv, ov);
+  @Watch(function (nv, _ov) {
+    this.name = nv[this.EditIndex].name;
   })
   data2 = [
     { name: Math.random().toString(), value: "a" },
@@ -90,6 +90,9 @@ export default class {
           title: "姓名：<m.name> 年龄：<m.age>",
           input: {
             value: Bind("<m.name>"),
+            click: (e: Event) => {
+              e.stopPropagation();
+            },
           },
           click: () => {
             this.data.reverse();
@@ -100,8 +103,9 @@ export default class {
             title: "<m1.name>",
             f: this.data2,
             itemas: "m1",
-            click: (_m, i) => {
+            click: (_m, i, e: Event) => {
               this.EditIndex = i;
+              e.stopPropagation();
             },
           },
         },

@@ -72,7 +72,7 @@ export default class RDM {
       }
       _self.LazyUpdate = setTimeout(() => {
         for (let i = 0; i < _self.$DomModels.length; i++) {
-          _self.$DomModels[i].setLoadState(true).DiffAttrModel();
+          _self.$DomModels[i].setLoadState(true).DiffAttrModel(true);
         }
       }, 1);
     };
@@ -98,6 +98,7 @@ export default class RDM {
 
   Monitor(Model: object, ParentKey: Array<string> = []) {
     let MonitorModel = (key) => {
+      if (typeof Model[key] === "function") return;
       let TempValue = Model[key];
       Object.defineProperty(Model, key, {
         get: () => {

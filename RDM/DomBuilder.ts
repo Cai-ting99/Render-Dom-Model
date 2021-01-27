@@ -67,7 +67,7 @@ export default class DomBuilder {
     return this;
   }
 
-  public DiffAttrModel() {
+  public DiffAttrModel(IsonlyBind = false) {
     let HtmlModel = this.Module.Rander();
     let NewAttrModel = GetValueByPropStr(this.ModelProp.join("."), HtmlModel);
     let DiffAttrModel = {};
@@ -77,11 +77,14 @@ export default class DomBuilder {
         typeof NewAttrModel[key] === "function"
       )
         continue;
+      if (IsonlyBind && !NewAttrModel[key]["Bind"]) {
+        continue;
+      }
       if (this.Item && NewAttrModel["f"]) {
         this.Item[NewAttrModel["itemas"]] = NewAttrModel["f"][this.Index];
       }
       this.AnalysisSpecificAttr(key, NewAttrModel);
-      if (NewAttrModel[key].hasOwnProperty("Prop")) {
+      if (NewAttrModel[key]["Prop"]) {
         if (
           NewAttrModel[key]["BindStr"] !== this.AttrModel[key]["BindStr"] ||
           NewAttrModel[key]["model"] !== this.AttrModel[key]["model"] ||
@@ -93,7 +96,17 @@ export default class DomBuilder {
           this.AttrModel[key] = NewAttrModel[key];
         }
       } else {
-        if (NewAttrModel[key].toString() !== this.AttrModel[key].toString()) {
+        if (NewAttrModel[key]["template"]) {
+          if (
+            NewAttrModel[key]["value"].toString() !==
+            this.AttrModel[key]["value"].toString()
+          ) {
+            DiffAttrModel[key] = NewAttrModel[key];
+            this.AttrModel[key] = NewAttrModel[key];
+          }
+        } else if (
+          NewAttrModel[key].toString() !== this.AttrModel[key].toString()
+        ) {
           DiffAttrModel[key] = NewAttrModel[key];
           this.AttrModel[key] = NewAttrModel[key];
         }
@@ -137,7 +150,7 @@ export default class DomBuilder {
     this.EventHandler = (...params) => {
       this.AttrModel[key](...params);
     };
-    if (this.Item) {
+    if (this.Item && this.AttrModel["itemas"]) {
       let _self = this;
       this.EventHandler = ((func: Function) => {
         return function (e) {
@@ -166,8 +179,9 @@ export default class DomBuilder {
     };
     this.Dom.addEventListener(EventType, this.BindValueHandler);
   }
-  OldAttrStr;
   private AnalysisSpecificAttr(Attrkey: string, _AttrModel) {
+    if (_AttrModel[Attrkey]["template"])
+      _AttrModel[Attrkey] = _AttrModel[Attrkey]["template"];
     if (_AttrModel["if"] !== undefined) {
       if (_AttrModel["if"].toString() === "false") {
         return;
@@ -187,7 +201,7 @@ export default class DomBuilder {
     if (typeof _AttrModel[Attrkey] === "string") {
       let ForItemas = _AttrModel[Attrkey].match(/\<.*?\>/gi);
       if (ForItemas) {
-        this.OldAttrStr = _AttrModel[Attrkey];
+        let template = _AttrModel[Attrkey];
         for (let i = 0; i < ForItemas.length; i++) {
           _AttrModel[Attrkey] = _AttrModel[Attrkey].replace(
             ForItemas[i],
@@ -197,6 +211,7 @@ export default class DomBuilder {
             )
           );
         }
+        _AttrModel[Attrkey] = { template, value: _AttrModel[Attrkey] };
       }
     }
   }
@@ -243,6 +258,14 @@ export default class DomBuilder {
         if (!this.ContinueTorender) {
           continue;
         }
+        let RestoreValue;
+        if (this.AttrModel[key]["template"]) {
+          let OldV = this.AttrModel[key];
+          RestoreValue = () => {
+            this.AttrModel[key] = OldV;
+          };
+          this.AttrModel[key] = this.AttrModel[key]["value"];
+        }
         switch (key) {
           case "show":
             this.Dom.style.display =
@@ -252,9 +275,12 @@ export default class DomBuilder {
             this.Dom.setAttribute("style", this.AttrModel[key]);
             break;
           case "title":
-            let TextDom = Array.from(this.Dom.childNodes).find(
-              (m) => m.nodeName === "#text"
-            );
+            let TextDom;
+            for (let i = 0; i < this.Dom.childNodes.length; i++) {
+              if (this.Dom.childNodes[i].nodeName === "#text") {
+                TextDom = this.Dom.childNodes[i];
+              }
+            }
             if (TextDom) {
               TextDom.textContent = this.AttrModel[key];
             } else {
@@ -278,10 +304,7 @@ export default class DomBuilder {
             }
             break;
         }
-        if (this.OldAttrStr) {
-          this.AttrModel[key] = this.OldAttrStr;
-          this.OldAttrStr = null;
-        }
+        RestoreValue && RestoreValue();
       }
     }
     for (let i = 0; i < BindFuncArr.length; i++) {
