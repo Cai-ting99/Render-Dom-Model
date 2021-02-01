@@ -1,4 +1,4 @@
-# Render Dom Model
+# Rander Dom Model
 
 #### 介绍
 RDM是一个类似 Vue React 的类库 并非框架 请勿误解
