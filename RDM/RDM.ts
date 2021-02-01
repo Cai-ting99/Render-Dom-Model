@@ -3,9 +3,7 @@ import { RDMModule } from "./Type";
 
 export default class RDM {
   /**模块对象 */
-  $Module: { Rander: Function; Style: Function; [x: string]: any };
-
-  $BackModule = {};
+  $Module: { Rander: Function; [x: string]: any };
 
   /**Dom对象实体的集合 */
   $DomModels: Array<DomBuilder> = [];
@@ -22,19 +20,16 @@ export default class RDM {
   }> = [];
 
   static $WatchFuncList: Array<{ key: string; func: Function }> = [];
+
   /**
    * RDM构造函数
    * @param Module 模块类
    */
   constructor(Module: RDMModule) {
     this.$Module = new Module();
-    this.RanderCssStyle(this.$Module.Style());
     this.RanderHTMLModel(this.$Module.Rander(), this.$Document);
     setTimeout(() => {
       this.Monitor(this.$Module);
-      for (const key in this.$Module) {
-        this.$BackModule[key] = this.$Module[key];
-      }
       this.RewritingArrayFunc();
     }, 0);
     document.body.appendChild(this.$Document);
@@ -45,6 +40,7 @@ export default class RDM {
     let _self = this;
     return function () {
       Func.apply(this, arguments);
+      if (this.RDMProp) return;
       if (this.RDMProp) return;
       if (
         Func.name === "reverse" ||
@@ -71,8 +67,12 @@ export default class RDM {
         clearTimeout(_self.LazyUpdate);
       }
       _self.LazyUpdate = setTimeout(() => {
+        let HtmlModel = _self.$Module.Rander();
         for (let i = 0; i < _self.$DomModels.length; i++) {
-          _self.$DomModels[i].setLoadState(true).DiffAttrModel(true);
+          _self.$DomModels[i]
+            .setHtmlModel(HtmlModel)
+            .setLoadState(true)
+            .DiffAttrModel(true);
         }
       }, 1);
     };
@@ -80,15 +80,7 @@ export default class RDM {
 
   RewritingArrayFunc() {
     (this.$DomModels as any).RDMProp = true;
-    let FuncName = [
-      "push",
-      "pop",
-      "shift",
-      "unshift",
-      "sort",
-      "reverse",
-      "splice",
-    ];
+    let FuncName = ["push", "pop", "shift", "unshift", "sort", "reverse"];
     for (let i = 0; i < FuncName.length; i++) {
       Array.prototype[FuncName[i]] = this.AopFunc(Array.prototype[FuncName[i]]);
     }
@@ -96,6 +88,7 @@ export default class RDM {
 
   LaterUpadte: any = 0;
 
+  $BackModule = {};
   Monitor(Model: object, ParentKey: Array<string> = []) {
     let MonitorModel = (key) => {
       if (typeof Model[key] === "function") return;
@@ -119,8 +112,12 @@ export default class RDM {
             clearTimeout(this.LaterUpadte);
           }
           this.LaterUpadte = setTimeout(() => {
+            let HtmlModel = this.$Module.Rander();
             for (let i = 0; i < this.$DomModels.length; i++) {
-              this.$DomModels[i].setLoadState(true).DiffAttrModel();
+              this.$DomModels[i]
+                .setHtmlModel(HtmlModel)
+                .setLoadState(true)
+                .DiffAttrModel();
             }
           }, 1);
         },
@@ -142,12 +139,6 @@ export default class RDM {
     for (const key in Model) {
       MonitorModel(key);
     }
-  }
-
-  RanderCssStyle(_StyleStr: string) {
-    // var ele = document.createElement("div");
-    // ele.innerHTML = `<style>${StyleStr}</style>`;
-    // document.getElementsByTagName("head")[0].appendChild(ele.firstElementChild);
   }
 
   RanderHTMLModel(HTMLModel: object, ParentDom: HTMLElement) {

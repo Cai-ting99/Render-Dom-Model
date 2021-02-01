@@ -12,7 +12,7 @@ export default class DomBuilder {
   Dom: HTMLElement = null;
   IsLoad = false;
   Index = 0;
-  ForLocation: any = { Action: "" };
+  ForLocation: { Action: string } = { Action: "" };
   constructor(
     _DomModels: Array<DomBuilder>,
     _Module: { [x: string]: any; Rander: Function }
@@ -62,109 +62,88 @@ export default class DomBuilder {
     return this;
   }
 
-  public setForLocation(_location: any) {
+  public setForLocation(_location: { Action: string }) {
     this.ForLocation = _location;
     return this;
   }
-
+  public setHtmlModel(_htmlmodel) {
+    this.HtmlModel = _htmlmodel;
+    return this;
+  }
+  HtmlModel;
   public DiffAttrModel(IsonlyBind = false) {
-    let HtmlModel = this.Module.Rander();
-    let NewAttrModel = GetValueByPropStr(this.ModelProp.join("."), HtmlModel);
+    let NewAttrModel = Object.assign(
+      {},
+      GetValueByPropStr(this.ModelProp.join("."), this.HtmlModel)
+    );
     let DiffAttrModel = {};
     for (const key in this.AttrModel) {
+      if (Array.isArray(NewAttrModel[key]))
+        this.Item[this.AttrModel["itemas"]] = this.AttrModel[key][this.Index];
       if (
-        Array.isArray(NewAttrModel[key]) ||
-        typeof NewAttrModel[key] === "function"
+        typeof NewAttrModel[key] === "function" ||
+        (typeof NewAttrModel[key] === "object" && !NewAttrModel[key].hasOwnProperty('Bind'))
       )
         continue;
       if (IsonlyBind && !NewAttrModel[key].hasOwnProperty("Bind")) {
         continue;
-      }
-      if (this.Item && NewAttrModel.hasOwnProperty("f")) {
-        this.Item[NewAttrModel["itemas"]] = NewAttrModel["f"][this.Index];
       }
       this.AnalysisSpecificAttr(key, NewAttrModel);
       if (NewAttrModel[key].hasOwnProperty("Prop")) {
         if (
           NewAttrModel[key]["BindStr"] !== this.AttrModel[key]["BindStr"] ||
           NewAttrModel[key]["model"] !== this.AttrModel[key]["model"] ||
-          NewAttrModel[key]["Prop"]["arrlen"] !==
-            this.AttrModel[key]["Prop"]["arrlen"] ||
           this.Dom[key] !== NewAttrModel[key]["model"]
         ) {
           DiffAttrModel[key] = NewAttrModel[key];
           this.AttrModel[key] = NewAttrModel[key];
         }
       } else {
-        if (NewAttrModel[key].hasOwnProperty("template")) {
-          if (
-            NewAttrModel[key]["value"].toString() !==
-            this.AttrModel[key]["value"].toString()
-          ) {
-            DiffAttrModel[key] = NewAttrModel[key];
-            this.AttrModel[key] = NewAttrModel[key];
-          }
-        } else if (
-          NewAttrModel[key].toString() !== this.AttrModel[key].toString()
-        ) {
+        if (NewAttrModel[key].toString() !== this.AttrModel[key].toString()) {
           DiffAttrModel[key] = NewAttrModel[key];
           this.AttrModel[key] = NewAttrModel[key];
         }
       }
     }
-    let OldAttrModel = this.AttrModel;
-    if (DiffAttrModel.hasOwnProperty("if")) {
-      DiffAttrModel = { ...this.AttrModel, ...DiffAttrModel };
+    if (Object.keys(DiffAttrModel).length !== 0) {
+      let OldAttrModel = this.AttrModel;
+      this.setAttrModel(DiffAttrModel);
+      this.DecorateDomAttr();
+      this.setAttrModel(OldAttrModel);
     }
-    this.setAttrModel(DiffAttrModel);
-    this.DecorateDomAttr();
-    this.setAttrModel(OldAttrModel);
   }
-
+  FakeDom;
   private RanderIf() {
-    let NewDom;
+    this.AnalysisSpecificAttr("if", this.AttrModel);
     if (this.AttrModel["if"].toString() === "false") {
-      NewDom = document.createComment("") as any;
+      if (this.FakeDom) return;
+      this.FakeDom = document.createComment("") as any;
       if (this.IsLoad) {
-        this.Dom.parentElement.replaceChild(NewDom, this.Dom);
-      } else {
-        this.Dom = NewDom;
+        this.ParentDom.replaceChild(this.FakeDom, this.Dom);
       }
-      this.ContinueTorender = false;
-    } else {
-      NewDom = document.createElement(
-        this.HtmlElementKey.replace(/_/g, "").replace(/[0-9]/g, "")
-      );
+    } else if (this.AttrModel["if"].toString() === "true") {
+      if (!this.FakeDom) return;
       if (this.IsLoad) {
-        this.Dom.parentElement.replaceChild(NewDom, this.Dom);
-      } else {
-        this.Dom = NewDom;
+        this.ParentDom.replaceChild(this.Dom, this.FakeDom);
       }
-      this.ContinueTorender = true;
+      this.FakeDom = null;
     }
-    this.Dom = NewDom;
   }
-  EventHandler;
+  FuncHandler;
   private RanderFunc(key: string) {
-    this.Dom.removeEventListener(key, this.EventHandler);
-    this.EventHandler = (...params) => {
-      this.AttrModel[key](...params);
-    };
-    if (this.Item && this.AttrModel["itemas"]) {
+    this.Dom.removeEventListener(key, this.FuncHandler);
+    if (this.Item) {
       let _self = this;
-      this.EventHandler = ((func: Function) => {
+      this.AttrModel[key] = ((func: Function) => {
         return function (e) {
-          func.apply(this, [
-            _self.Item[_self.AttrModel["itemas"]],
-            _self.Index,
-            e,
-          ]);
+          func.apply(this, [_self.Item, _self.Index, e]);
         };
-      })(this.EventHandler);
+      })(this.AttrModel[key]);
     }
-    this.Dom.addEventListener(key, this.EventHandler);
+    this.FuncHandler = this.AttrModel[key];
+    this.Dom.addEventListener(key, this.FuncHandler);
   }
-  BindValueHandler;
+  BindHandler;
   private RanderBind(key) {
     if (this.Dom[key] !== this.AttrModel[key].model)
       this.Dom[key] = this.AttrModel[key].model;
@@ -172,24 +151,17 @@ export default class DomBuilder {
     if (this.Dom.nodeName === "SELECT") {
       EventType = "change";
     }
-    this.Dom.removeEventListener(EventType, this.BindValueHandler);
-    this.BindValueHandler = () => {
+    this.Dom.removeEventListener(EventType, this.BindHandler);
+    this.BindHandler = () => {
       this.AttrModel[key].Prop.Item[this.AttrModel[key].Prop.key] = (this
         .Dom as any).value;
     };
-    this.Dom.addEventListener(EventType, this.BindValueHandler);
+    this.Dom.addEventListener(EventType, this.BindHandler);
   }
   private AnalysisSpecificAttr(Attrkey: string, _AttrModel) {
-    if (_AttrModel[Attrkey].hasOwnProperty("template"))
-      _AttrModel[Attrkey] = _AttrModel[Attrkey]["template"];
-    if (_AttrModel["if"] !== undefined) {
-      if (_AttrModel["if"].toString() === "false") {
-        return;
-      }
-    }
     if (_AttrModel[Attrkey].hasOwnProperty("Bind")) {
       let PropModel: any = this.Module;
-      if (_AttrModel[Attrkey]["Bind"].match(/\<.*?\>/gi)) {
+      if (_AttrModel[Attrkey]["Bind"].match(/\<.*?\>/)) {
         PropModel = this.Item;
       }
       _AttrModel[Attrkey] = GetValueByPropStr(
@@ -201,7 +173,6 @@ export default class DomBuilder {
     if (typeof _AttrModel[Attrkey] === "string") {
       let ForItemas = _AttrModel[Attrkey].match(/\<.*?\>/gi);
       if (ForItemas) {
-        let template = _AttrModel[Attrkey];
         for (let i = 0; i < ForItemas.length; i++) {
           _AttrModel[Attrkey] = _AttrModel[Attrkey].replace(
             ForItemas[i],
@@ -211,18 +182,19 @@ export default class DomBuilder {
             )
           );
         }
-        _AttrModel[Attrkey] = { template, value: _AttrModel[Attrkey] };
       }
     }
   }
 
-  ContinueTorender = true;
   ChildDom: { [x: string]: DomBuilder } | Array<DomBuilder> = {};
   private DecorateDomAttr() {
     let BindFuncArr = [];
     (BindFuncArr as any).RDMProp = true;
+    if (this.AttrModel.hasOwnProperty("if")) {
+      this.RanderIf();
+    }
     for (const key in this.AttrModel) {
-      if (this.AttrModel[key] === undefined) continue;
+      if (key === "if") continue;
       if (
         IsTagModel(this.AttrModel[key]) &&
         !this.ChildDom.hasOwnProperty(key)
@@ -235,38 +207,9 @@ export default class DomBuilder {
           .setParentDom(this.Dom)
           .builder();
         continue;
-      } else if (this.ChildDom.hasOwnProperty(key)) {
-        if (Array.isArray(this.ChildDom[key])) {
-          for (let i = 0; i < this.ChildDom.length; i++) {
-            this.ChildDom[i]
-              .setForItem(this.Item)
-              .setLoadState(true)
-              .builder(true);
-          }
-        } else {
-          this.ChildDom[key]
-            .setForItem(this.Item)
-            .setLoadState(true)
-            .builder(true);
-        }
-        continue;
       }
       if (!Array.isArray(this.AttrModel[key]) && key !== "itemas") {
         this.AnalysisSpecificAttr(key, this.AttrModel);
-        if (key === "if") {
-          this.RanderIf();
-        }
-        if (!this.ContinueTorender) {
-          continue;
-        }
-        let RestoreValue;
-        if (this.AttrModel[key]["template"]) {
-          let OldV = this.AttrModel[key];
-          RestoreValue = () => {
-            this.AttrModel[key] = OldV;
-          };
-          this.AttrModel[key] = this.AttrModel[key]["value"];
-        }
         switch (key) {
           case "show":
             this.Dom.style.display =
@@ -276,12 +219,9 @@ export default class DomBuilder {
             this.Dom.setAttribute("style", this.AttrModel[key]);
             break;
           case "title":
-            let TextDom;
-            for (let i = 0; i < this.Dom.childNodes.length; i++) {
-              if (this.Dom.childNodes[i].nodeName === "#text") {
-                TextDom = this.Dom.childNodes[i];
-              }
-            }
+            let TextDom = Array.from(this.Dom.childNodes).find(
+              (m) => m.nodeName === "#text"
+            );
             if (TextDom) {
               TextDom.textContent = this.AttrModel[key];
             } else {
@@ -299,13 +239,11 @@ export default class DomBuilder {
                   this.RanderBind(key);
                 });
               } else {
-                if (key !== "if" && key !== "f")
-                  this.Dom[key] = this.AttrModel[key];
+                if (key !== "f") this.Dom[key] = this.AttrModel[key];
               }
             }
             break;
         }
-        RestoreValue && RestoreValue();
       }
     }
     for (let i = 0; i < BindFuncArr.length; i++) {
@@ -314,7 +252,7 @@ export default class DomBuilder {
   }
   ContinuetoCycle = true;
   ChildDomArr: Array<DomBuilder> = [];
-  public builder(Reconsitution: boolean = false) {
+  public builder() {
     let res = IsForTagModel(this.AttrModel);
     if (res && this.ContinuetoCycle) {
       if (!this.AttrModel["itemas"]) {
@@ -329,13 +267,14 @@ export default class DomBuilder {
         arr: this.AttrModel["f"],
         len: this.AttrModel["f"].length,
         action: (Type: { name: string; args: Array<any> }) => {
-          Type.args = Array.from(Type.args);
-          (Type.args as any).RDMProp = true;
           switch (Type.name) {
             case "unshift":
             case "push":
               if (Type.name === "unshift") {
+                Type.args = Array.from(Type.args);
+                (Type.args as any).RDMProp = true;
                 Type.args.reverse();
+                delete (Type.args as any).RDMProp;
               }
               for (let i = 0; i < Type.args.length; i++) {
                 this.ChildDomArr[Type.name](
@@ -354,10 +293,10 @@ export default class DomBuilder {
                             [this.AttrModel["itemas"]]: Type.args[i],
                           }
                     )
-                    .setForLocation({
-                      Action: Type.name,
-                      ChildDomArr: this.ChildDomArr,
-                    })
+                    .setForIndex(
+                      this.AttrModel["f"].length - (Type.args.length - i)
+                    )
+                    .setForLocation({ Action: Type.name })
                     .setParentDom(this.ParentDom)
                     .builder()
                 );
@@ -383,64 +322,18 @@ export default class DomBuilder {
               break;
             case "reverse":
             case "sort":
+              let HtmlModel = this.Module.Rander();
               for (let i = 0; i < this.ChildDomArr.length; i++) {
                 this.ChildDomArr[i].Item[
                   this.AttrModel["itemas"]
                 ] = this.AttrModel["f"][i];
-                this.ChildDomArr[i].setLoadState(true).builder(true);
-              }
-              break;
-            case "splice":
-              let AppendDom = () => {
-                Type.args.reverse();
-                for (let i = 0; i < Type.args.length - 2; i++) {
-                  this.ChildDomArr[Type.name](
-                    Type.args[Type.args.length - 1],
-                    Type.args[Type.args.length - 2],
-                    new DomBuilder(this.DomModels, this.Module)
-                      .setHtmlModelProp(this.ModelProp)
-                      .setHtmlElementKey(this.HtmlElementKey)
-                      .setAttrModel({ ...this.AttrModel })
-                      .setContinuetoCycle(false)
-                      .setForItem(
-                        this.Item
-                          ? {
-                              ...this.Item,
-                              [this.AttrModel["itemas"]]: Type.args[i],
-                            }
-                          : {
-                              [this.AttrModel["itemas"]]: Type.args[i],
-                            }
-                      )
-                      .setForLocation({
-                        Action: Type.name,
-                        StartIndex: Type.args[Type.args.length - 1],
-                        ChildDomArr: this.ChildDomArr,
-                      })
-                      .setParentDom(this.ParentDom)
-                      .builder()
-                  );
-                }
-              };
-              let DeleteDom = () => {
-                for (let i = Type.args[0]; i < Type.args[1]; i++) {
-                  this.ChildDomArr[i].Dom.parentElement.removeChild(
-                    this.ChildDomArr[i].Dom
-                  );
-                  this.ChildDomArr.splice(i, 1);
-                }
-              };
-              if (Type.args[1] === 0 && Type.args.length > 2) {
-                AppendDom();
-              } else if (Type.args[1] > 0 && Type.args.length === 2) {
-                DeleteDom();
-              } else if (Type.args[1] > 0 && Type.args.length > 2) {
-                DeleteDom();
-                AppendDom();
+                this.ChildDomArr[i]
+                  .setHtmlModel(HtmlModel)
+                  .setLoadState(true)
+                  .DiffAttrModel();
               }
               break;
           }
-          delete (Type.args as any).RDMProp;
           if (this.ParentDom.nodeName === "SELECT") {
             (this.ParentDom as HTMLSelectElement).value = "";
           }
@@ -476,43 +369,26 @@ export default class DomBuilder {
       }
       return this.ChildDomArr as any;
     }
-
-    if (!Reconsitution) {
-      this.Dom = document.createElement(
-        this.HtmlElementKey.replace(/_/g, "").replace(/[0-9]/g, "")
-      );
-    }
+    this.Dom = document.createElement(
+      this.HtmlElementKey.replace(/_/g, "").replace(/[0-9]/g, "")
+    );
     this.DecorateDomAttr();
-    if (this.ParentDom.nodeName !== "#comment" && !Reconsitution) {
-      switch (this.ForLocation.Action) {
-        case "unshift":
-          if (this.ForLocation.ChildDomArr.length === 0) {
-            this.ParentDom.appendChild(this.Dom);
-          } else {
-            this.ParentDom.insertBefore(
-              this.Dom,
-              this.ForLocation.ChildDomArr[0].Dom
-            );
-          }
-          break;
-        case "splice":
-          if (this.ForLocation.ChildDomArr.length === 0) {
-            this.ParentDom.appendChild(this.Dom);
-          } else {
-            this.ParentDom.insertBefore(
-              this.Dom,
-              this.ForLocation.ChildDomArr[this.ForLocation.StartIndex].Dom
-            );
-          }
-          break;
-        case "push":
-        default:
-          this.ParentDom.appendChild(this.Dom);
-          break;
-      }
-      this.ForLocation.Action = "";
+    let InteriorDom = this.FakeDom ? this.FakeDom : this.Dom;
+    switch (this.ForLocation.Action) {
+      case "unshift":
+        if (this.ParentDom.children.length === 0) {
+          this.ParentDom.appendChild(InteriorDom);
+        } else {
+          this.ParentDom.insertBefore(InteriorDom, this.ParentDom.children[0]);
+        }
+        break;
+      case "push":
+      default:
+        this.ParentDom.appendChild(InteriorDom);
+        break;
     }
-    if (!Reconsitution) this.DomModels.push(this);
+    this.ForLocation.Action = "";
+    this.DomModels.push(this);
     return this;
   }
 }

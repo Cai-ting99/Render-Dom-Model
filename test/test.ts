@@ -1,10 +1,7 @@
-import { Bind, Watch } from "../RDM/PublicLib";
+import { Bind } from "../RDM/PublicLib";
 
 export default class {
-  @Watch(function (_nv, _ov) {
-    this.data2[0].name += "这是啥呀";
-  })
-  name = "阿巴阿巴";
+  name = "原文本";
   data = [];
   data2 = [
     { name: Math.random().toString(), value: "a" },
@@ -20,6 +17,7 @@ export default class {
       this.data.push({
         name: dataName,
         age: 18,
+        if: parseFloat(dataName) > 0.5,
       });
     }
   }
@@ -32,9 +30,6 @@ export default class {
       },
       div: {
         title: `select选中的值：${this.selectVal}`,
-        click: () => {
-          this.name = Math.random().toString();
-        },
       },
       select: {
         value: Bind("selectVal"),
@@ -42,6 +37,7 @@ export default class {
           f: this.data2,
           itemas: "m",
           title: "<m.name>",
+          value: "<m.value>",
         },
       },
       button: {
@@ -62,42 +58,37 @@ export default class {
         },
       },
       div1: {
-        className: "abb",
         style: "color:" + this.color,
         title: `点我追加Dom`,
         click: () => {
-          // for (let i = 0; i < 1; i++) {
-          //   this.data2.push({
-          //     name: "我是追加的" + Math.random(),
-          //     value: "",
-          //   });
-          // }
-          this.data2.splice(
-            0,
-            0,
-            ...[
-              { name: "a", value: "a" },
-              { name: "b", value: "b" },
-            ]
-          );
+          this.data2.push({
+            name: "我是追加的" + Math.random(),
+            value: Math.random().toString(),
+          });
         },
       },
       a: {
         title: this.name,
         div: {
+          if: "<m.if>",
           f: this.data,
           itemas: "m",
           title: "姓名：<m.name> 年龄：<m.age>",
           input: {
             value: Bind("<m.name>"),
-            click: (e: Event) => {
+            click: (_m, _i, e: Event) => {
               e.stopPropagation();
             },
           },
           click: () => {
-            this.data.reverse();
-            // this.data.sort((a, b) => parseFloat(a.name) - parseFloat(b.name));
-            // this.data2.sort((a, b) => parseFloat(a.name) - parseFloat(b.name));
+            // this.data.reverse();
+            this.data.forEach((m) => {
+              if (m.if) {
+                m.if = false;
+              } else {
+                m.if = true;
+              }
+            });
           },
           div: {
             title: "<m1.name>",
@@ -111,8 +102,5 @@ export default class {
         },
       },
     };
-  }
-  Style() {
-    return {};
   }
 }

@@ -9,7 +9,6 @@ export function IsTagModel(obj: object) {
     typeof obj === "object" &&
     !obj.hasOwnProperty("Bind") &&
     !obj.hasOwnProperty("Prop") &&
-    !obj.hasOwnProperty("template") &&
     !Array.isArray(obj)
   );
 }
@@ -33,32 +32,15 @@ export function GetValueByPropStr(
   if (PropStr.match(/\<.*?\>/)) {
     PropStr = PropStr.substring(1, PropStr.length - 1);
   }
-  let Prop = { key: "", Item: null, arrlen: 0 };
-  // let PropArr = PropStr.split(".");
-  // for (let i = 0; i < PropArr.length; i++) {
-  //   let idx = PropArr[i].match(/\[[0-9]+\]/);
-  //   if (idx) {
-  //     idx[0] = idx[0].substring(1, idx[0].length - 1);
-  //     model = model[PropArr[i].replace("[" + idx[0] + "]", "")];
-  //     Prop.arrlen = (model as any).length;
-  //     Prop.key = idx[0];
-  //     Prop.Item = model;
-  //     model = model[idx[0]];
-  //     continue;
-  //   }
-  //   Prop.key = PropArr[i];
-  //   Prop.Item = model;
-  //   model = model[PropArr[i]];
-  // }
+  let Prop = { key: "", Item: null };
   PropStr.split(".").forEach((s) => {
     let idx = s.match(/\[[0-9]+\]/);
     if (idx) {
       idx[0] = idx[0].substring(1, idx[0].length - 1);
       model = model[s.replace("[" + idx[0] + "]", "")];
-      Prop.arrlen = (model as any).length;
-      Prop.key = idx[0];
-      Prop.Item = model;
       model = model[idx[0]];
+      Prop.Item = model;
+      Prop.key = s.replace("[" + idx[0] + "]", "");
       return;
     }
     Prop.key = s;
