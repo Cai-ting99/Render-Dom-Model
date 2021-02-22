@@ -82,26 +82,43 @@ export default class DomBuilder {
         this.Item[this.AttrModel["itemas"]] = this.AttrModel[key][this.Index];
       if (
         typeof NewAttrModel[key] === "function" ||
-        (typeof NewAttrModel[key] === "object" && !NewAttrModel[key].hasOwnProperty('Bind'))
+        (typeof NewAttrModel[key] === "object" &&
+          !NewAttrModel[key].hasOwnProperty("Bind") &&
+          key !== "style")
       )
         continue;
       if (IsonlyBind && !NewAttrModel[key].hasOwnProperty("Bind")) {
         continue;
       }
-      this.AnalysisSpecificAttr(key, NewAttrModel);
-      if (NewAttrModel[key].hasOwnProperty("Prop")) {
-        if (
-          NewAttrModel[key]["BindStr"] !== this.AttrModel[key]["BindStr"] ||
-          NewAttrModel[key]["model"] !== this.AttrModel[key]["model"] ||
-          this.Dom[key] !== NewAttrModel[key]["model"]
-        ) {
-          DiffAttrModel[key] = NewAttrModel[key];
-          this.AttrModel[key] = NewAttrModel[key];
+      if (key === "style" && typeof this.AttrModel[key] === "object") {
+        let IsContinue = true;
+        for (const Attrkey in this.AttrModel[key]) {
+          if (!IsContinue) continue;
+          if (
+            NewAttrModel[key][Attrkey].toString() !==
+            this.AttrModel[key][Attrkey].toString()
+          ) {
+            DiffAttrModel[key] = NewAttrModel[key];
+            this.AttrModel[key] = Object.assign({}, NewAttrModel[key]);
+            IsContinue = false;
+          }
         }
       } else {
-        if (NewAttrModel[key].toString() !== this.AttrModel[key].toString()) {
-          DiffAttrModel[key] = NewAttrModel[key];
-          this.AttrModel[key] = NewAttrModel[key];
+        this.AnalysisSpecificAttr(key, NewAttrModel);
+        if (NewAttrModel[key].hasOwnProperty("Prop")) {
+          if (
+            NewAttrModel[key]["BindStr"] !== this.AttrModel[key]["BindStr"] ||
+            NewAttrModel[key]["model"] !== this.AttrModel[key]["model"] ||
+            this.Dom[key] !== NewAttrModel[key]["model"]
+          ) {
+            DiffAttrModel[key] = NewAttrModel[key];
+            this.AttrModel[key] = NewAttrModel[key];
+          }
+        } else {
+          if (NewAttrModel[key].toString() !== this.AttrModel[key].toString()) {
+            DiffAttrModel[key] = NewAttrModel[key];
+            this.AttrModel[key] = NewAttrModel[key];
+          }
         }
       }
     }
@@ -197,7 +214,8 @@ export default class DomBuilder {
       if (key === "if") continue;
       if (
         IsTagModel(this.AttrModel[key]) &&
-        !this.ChildDom.hasOwnProperty(key)
+        !this.ChildDom.hasOwnProperty(key) &&
+        key !== "style"
       ) {
         this.ChildDom[key] = new DomBuilder(this.DomModels, this.Module)
           .setHtmlModelProp(this.ModelProp.concat(key))
@@ -216,7 +234,18 @@ export default class DomBuilder {
               this.AttrModel[key].toString() === "false" ? "none" : "";
             break;
           case "style":
-            this.Dom.setAttribute("style", this.AttrModel[key]);
+            if (typeof this.AttrModel[key] === "object") {
+              let StyleStr = "";
+              for (const Attrkey in this.AttrModel[key]) {
+                StyleStr += `${Attrkey.replace(/([A-Z])/g, ($1) => {
+                  return "-" + $1.toLowerCase();
+                })}:${this.AttrModel[key][Attrkey]};`;
+              }
+              this.AttrModel[key] = Object.assign({}, this.AttrModel[key]);
+              this.Dom.setAttribute("style", StyleStr);
+            } else {
+              this.Dom.setAttribute("style", this.AttrModel[key]);
+            }
             break;
           case "title":
             let TextDom = Array.from(this.Dom.childNodes).find(
@@ -260,7 +289,7 @@ export default class DomBuilder {
           "在 " + this.ModelProp.join(".") + " 下未找到相应的 itemas 的别名"
         );
       }
-      let DomForTempLateLen = RDM.$DomForTempLate.length;
+      let DomForTempLateIndex = RDM.$DomForTempLate.length;
       RDM.$DomForTempLate.push({
         key: this.ModelProp.join("."),
         AttrModel: this.AttrModel,
@@ -340,7 +369,7 @@ export default class DomBuilder {
           for (let i = 0; i < this.ChildDomArr.length; i++) {
             this.ChildDomArr[i].Index = i;
           }
-          RDM.$DomForTempLate[DomForTempLateLen].len = this.AttrModel[
+          RDM.$DomForTempLate[DomForTempLateIndex].len = this.AttrModel[
             "f"
           ].length;
         },

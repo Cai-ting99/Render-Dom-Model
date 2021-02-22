@@ -65,9 +65,10 @@ export function Bind(PorpStr): any {
  */
 export function Watch(WatchFunc: Function) {
   return function (_target: any, attr: any) {
+    //添加一个监听器对象
     RDM.$WatchFuncList.push({
       key: attr,
-      func: function (nv, ov, key) {
+      func: function (nv, ov, key) {//新的值 旧的值 修改的key
         WatchFunc.apply(this.$Module, [nv, ov]);
         this.$BackModule[key] = nv;
       },

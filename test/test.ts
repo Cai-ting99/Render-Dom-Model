@@ -1,6 +1,9 @@
-import { Bind } from "../RDM/PublicLib";
+import { Bind, Watch } from "../RDM/PublicLib";
 
 export default class {
+  @Watch(function (nv, _ov) {
+    this.data2[this.EditIndex].name = nv;
+  })
   name = "原文本";
   data = [];
   data2 = [
@@ -11,6 +14,7 @@ export default class {
   color = "red";
   selectVal = "张三";
   EditIndex = 0;
+  redA = { color: "red", textAlign: "right" };
   constructor() {
     for (let i = 0; i < 1000; i++) {
       let dataName = Math.random().toString();
@@ -43,19 +47,20 @@ export default class {
       button: {
         title: "test",
         click: () => {
-          this.data.unshift(
-            ...[
-              {
-                name: "我是unshift的" + Math.random(),
-                age: 18,
-              },
-              {
-                name: "我是unshift的" + Math.random(),
-                age: 18,
-              },
-            ]
-          );
+          // this.data.unshift({
+          //   name: "我是unshift的" + Math.random(),
+          //   age: 18,
+          // });
+          this.redA.textAlign =
+            this.redA.textAlign === "left" ? "right" : "left";
+          this.redA.color =
+            "#" + Math.random().toString(16).substr(2, 6).toUpperCase();
         },
+      },
+      input1: {
+        style: "display: block;",
+        type: "text",
+        value: Bind("name"),
       },
       div1: {
         style: "color:" + this.color,
@@ -69,6 +74,7 @@ export default class {
       },
       a: {
         title: this.name,
+        style: this.redA,
         div: {
           if: "<m.if>",
           f: this.data,
