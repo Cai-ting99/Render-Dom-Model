@@ -2,7 +2,7 @@ import DomBuilder from "./DomBuilder";
 
 export interface RDMModule {
   new (): {
-    Rander: () => object;
+    Render: () => object;
   };
 }
 export type DomModel = {

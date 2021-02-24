@@ -25,7 +25,7 @@ export default class {
       });
     }
   }
-  Rander() {
+  Render() {
     return {
       input: {
         if: this.data2.length !== 0,

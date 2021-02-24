@@ -8,14 +8,14 @@ export default class DomBuilder {
   DomModels: Array<DomBuilder> = [];
   Item: object = null;
   ModelProp: Array<string> = [];
-  Module: { [x: string]: any; Rander: Function } = null;
+  Module: { [x: string]: any; Render: Function } = null;
   Dom: HTMLElement = null;
   IsLoad = false;
   Index = 0;
   ForLocation: { Action: string } = { Action: "" };
   constructor(
     _DomModels: Array<DomBuilder>,
-    _Module: { [x: string]: any; Rander: Function }
+    _Module: { [x: string]: any; Render: Function }
   ) {
     this.DomModels = _DomModels;
     this.Module = _Module;
@@ -130,7 +130,7 @@ export default class DomBuilder {
     }
   }
   FakeDom;
-  private RanderIf() {
+  private RenderIf() {
     this.AnalysisSpecificAttr("if", this.AttrModel);
     if (this.AttrModel["if"].toString() === "false") {
       if (this.FakeDom) return;
@@ -147,7 +147,7 @@ export default class DomBuilder {
     }
   }
   FuncHandler;
-  private RanderFunc(key: string) {
+  private RenderFunc(key: string) {
     this.Dom.removeEventListener(key, this.FuncHandler);
     if (this.Item) {
       let _self = this;
@@ -161,7 +161,7 @@ export default class DomBuilder {
     this.Dom.addEventListener(key, this.FuncHandler);
   }
   BindHandler;
-  private RanderBind(key) {
+  private RenderBind(key) {
     if (this.Dom[key] !== this.AttrModel[key].model)
       this.Dom[key] = this.AttrModel[key].model;
     let EventType = "input";
@@ -208,7 +208,7 @@ export default class DomBuilder {
     let BindFuncArr = [];
     (BindFuncArr as any).RDMProp = true;
     if (this.AttrModel.hasOwnProperty("if")) {
-      this.RanderIf();
+      this.RenderIf();
     }
     for (const key in this.AttrModel) {
       if (key === "if") continue;
@@ -261,11 +261,11 @@ export default class DomBuilder {
             break;
           default:
             if (typeof this.AttrModel[key] === "function") {
-              this.RanderFunc(key);
+              this.RenderFunc(key);
             } else {
               if (this.AttrModel[key].hasOwnProperty("Prop")) {
                 BindFuncArr.push(() => {
-                  this.RanderBind(key);
+                  this.RenderBind(key);
                 });
               } else {
                 if (key !== "f") this.Dom[key] = this.AttrModel[key];
@@ -351,7 +351,7 @@ export default class DomBuilder {
               break;
             case "reverse":
             case "sort":
-              let HtmlModel = this.Module.Rander();
+              let HtmlModel = this.Module.Render();
               for (let i = 0; i < this.ChildDomArr.length; i++) {
                 this.ChildDomArr[i].Item[
                   this.AttrModel["itemas"]

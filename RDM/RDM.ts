@@ -3,7 +3,7 @@ import { RDMModule } from "./Type";
 
 export default class RDM {
   /**模块对象 */
-  $Module: { Rander: Function; [x: string]: any };
+  $Module: { Render: Function; [x: string]: any };
 
   /**Dom对象实体的集合 */
   $DomModels: Array<DomBuilder> = [];
@@ -33,7 +33,7 @@ export default class RDM {
       this.$BackModule[key] = this.$Module[key];
     }
     // 通过HtmlModel渲染页面
-    this.RanderHTMLModel(this.$Module.Rander(), this.$Document);
+    this.RenderHTMLModel(this.$Module.Render(), this.$Document);
     setTimeout(() => {
       //监听当前模块类中的属性
       this.Monitor(this.$Module);
@@ -87,8 +87,8 @@ export default class RDM {
       }
       // 添加延迟器
       _self.LazyUpdate = setTimeout(() => {
-        let HtmlModel = _self.$Module.Rander();
-        // 通过 Rander 方法获取新的 HtmlModel对象
+        let HtmlModel = _self.$Module.Render();
+        // 通过 Render 方法获取新的 HtmlModel对象
         for (let i = 0; i < _self.$DomModels.length; i++) {
           // 每个节点对象都diff
           _self.$DomModels[i]
@@ -155,8 +155,8 @@ export default class RDM {
           }
           // 添加延迟函数
           this.LaterUpadte = setTimeout(() => {
-            let HtmlModel = this.$Module.Rander();
-            // 通过 Rander 方法获取新的 HtmlModel对象
+            let HtmlModel = this.$Module.Render();
+            // 通过 Render 方法获取新的 HtmlModel对象
             for (let i = 0; i < this.$DomModels.length; i++) {
               // 每个节点对象都diff
               this.$DomModels[i]
@@ -194,7 +194,7 @@ export default class RDM {
    * @param HTMLModel Model对象
    * @param ParentDom 父级Html对象
    */
-  RanderHTMLModel(HTMLModel: object, ParentDom: HTMLElement) {
+  RenderHTMLModel(HTMLModel: object, ParentDom: HTMLElement) {
     //循环对象中的键来创建 节点建造者对象 来渲染节点
     for (const key in HTMLModel) {
       new DomBuilder(this.$DomModels, this.$Module)
